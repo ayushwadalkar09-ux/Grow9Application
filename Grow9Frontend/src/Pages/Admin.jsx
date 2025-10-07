@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { User, Plus, Users, Phone, Mail, Calendar, Eye, UserPlus } from 'lucide-react';
 
+const baseURL = "http://localhost:5000";
+
 const AdminPage = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeTab, setActiveTab] = useState('register');
@@ -15,7 +17,8 @@ const AdminPage = () => {
     name: '',
     email: '',
     mobNumber: '',
-    dob: ''
+    dob: '',
+    password: ''
   });
 
   // Registration response state
@@ -44,21 +47,21 @@ const AdminPage = () => {
     setMessage('');
 
     try {
-      const response = await fetch('/api/admin/sponserregisteration', {
+      const response = await fetch( baseURL+'/api/Admin/sponserregisteration', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+          'Authorization': `Bearer ${sessionStorage.getItem('adminToken')}`
         },
         body: JSON.stringify(formData)
       });
-
+      console.log(response);
       const data = await response.json();
       
       if (response.ok) {
-        setRegistrationResponse(data);
+        setRegistrationResponse(data.sponsor);
         setMessage('Sponsor registered successfully!');
-        setFormData({ name: '', email: '', mobNumber: '', dob: '' });
+        setFormData({ name: '', email: '', mobNumber: '', dob: ''});
         // Refresh sponsor list
         fetchSponsors();
       } else {
@@ -75,7 +78,7 @@ const AdminPage = () => {
   const fetchSponsors = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/admin/sponserlist', {
+      const response = await fetch(baseURL+'/api/admin/sponserlist', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
         }
@@ -99,7 +102,7 @@ const AdminPage = () => {
   const fetchSponsorCustomers = async (sponsorId) => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/sponser/customerlist?sponsorId=${sponsorId}`, {
+      const response = await fetch(baseURL+ `/api/sponser/customerlist?sponsorId=${sponsorId}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
         }
@@ -238,6 +241,21 @@ const AdminPage = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                  placeholder="Enter Sponsor password"
+                  // disabled={isLoading}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   <Calendar className="w-4 h-4 inline mr-1" />
                   Date of Birth
                 </label>
@@ -267,8 +285,6 @@ const AdminPage = () => {
                 <div className="space-y-2 text-green-700">
                   <p><strong>Sponsor ID (UUID):</strong> {registrationResponse.sponsorId || registrationResponse.uuid}</p>
                   <p><strong>User Name:</strong> {registrationResponse.userName || registrationResponse.name}</p>
-                  <p><strong>Password:</strong> {registrationResponse.password}</p>
-                  <p><strong>Message:</strong> {registrationResponse.message}</p>
                 </div>
               </div>
             )}
