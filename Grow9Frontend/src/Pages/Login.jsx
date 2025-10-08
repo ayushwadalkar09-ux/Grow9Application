@@ -55,6 +55,17 @@ const LoginPage = () => {
     }
   };
 
+  const storeSponsorInfoInCache = (sponsorInfoKey, sponsorInfo) => {
+    try {
+      const sponsorInfoData = {
+        sponsorInfo
+      };
+      sessionStorage.setItem(sponsorInfoKey, JSON.stringify(sponsorInfoData));
+    } catch (error) {
+      console.error('Error storing token in cache:', error);
+    }
+  };
+
   const isValidToken = (tokenData) => {
     if (!tokenData || !tokenData.expiresAt) return false;
     return Date.now() < tokenData.expiresAt;
@@ -128,10 +139,8 @@ const LoginPage = () => {
       setErrorMessage('Please fill in all required fields');
       return;
     }
-
     setIsLoading(true);
     setErrorMessage('');
-
     try {
       const response = await fetch(baseURL + '/api/sponser/login', {
         method: 'POST',
@@ -146,9 +155,11 @@ const LoginPage = () => {
       });
       
       const responseData = await response.json();
-
+      console.log("Enetr 1"+JSON.stringify(responseData.user))
+      
       if (response.ok && responseData.token) {
         storeTokenInCache('sponsorToken', responseData.token);
+        storeSponsorInfoInCache('sponsorInfo', JSON.stringify(responseData.user));
         redirectToSponsorConsole();
       } else {
         setErrorMessage(responseData.message || 'Invalid sponsor credentials');

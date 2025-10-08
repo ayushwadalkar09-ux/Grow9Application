@@ -21,18 +21,20 @@ const SponsorPage = () => {
   // Check for sponsor token and login status on component mount
   useEffect(() => {
     // Check for sponsor token in cache/memory
-    const token = localStorage?.getItem?.('sponsorToken') || 'demo-sponsor-token';
-    const loginStatus = localStorage?.getItem?.('sponsorLoggedIn') || 'true'; // Demo value
-    const sponsorData = localStorage?.getItem?.('sponsorInfo') || JSON.stringify({
-      id: 'SP001',
-      name: 'John Sponsor',
+    const token = sessionStorage?.getItem?.('sponsorToken') || 'demo-sponsor-token';
+    const loginStatus = sessionStorage?.getItem?.('sponsorLoggedIn') || 'true'; // Demo value
+    let sponsorData = sessionStorage?.getItem?.('sponsorInfo') || JSON.stringify({
+      sponsorId: 'SP001',
+      username: 'John Sponsor',
       email: 'john@sponsor.com'
     });
+    sponsorData = JSON.parse(sponsorData);
+    sponsorData = JSON.parse(sponsorData.sponsorInfo);
 
     if (token && loginStatus === 'true') {
       setSponsorToken(token);
       setIsLoggedIn(true);
-      setSponsorInfo(JSON.parse(sponsorData));
+      setSponsorInfo(sponsorData);
     }
   }, []);
 
@@ -89,31 +91,78 @@ const SponsorPage = () => {
     setError('');
   };
 
-  const handleSubmit = async () => {
-    setLoading(true);
-    setError('');
-    setSuccess('');
-
-    try {
-      // Simulate form submission
-      await new Promise(resolve => setTimeout(resolve, 1000));
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  // Validation
+  if (!formData.sponsorId || !formData.name || !formData.mobileNumber || 
+      !formData.email || !formData.dateOfBirth) {
+    setError('Please fill in all required fields');
+    return;
+  }
+  
+  // Validate mobile number
+  const mobileRegex = /^[6-9]\d{9}$/;
+  const cleanMobile = formData.mobileNumber.replace(/[^\d]/g, '');
+  if (!mobileRegex.test(cleanMobile)) {
+    setError('Please enter a valid 10-digit mobile number');
+    return;
+  }
+  
+  // Validate email
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(formData.email)) {
+    setError('Please enter a valid email address');
+    return;
+  }
+  
+  setLoading(true);
+  setError('');
+  setSuccess('');
+  
+  try {
+    const response = await fetch(`${baseURL}/api/customer/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        sponsorId: formData.sponsorId,
+        name: formData.name,
+        mobileNumber: cleanMobile,
+        email: formData.email,
+        dateOfBirth: formData.dateOfBirth
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      setSuccess(data.message || 'Registration successful!');
+      // Reset form
+      setFormData({
+        sponsorId: '',
+        name: '',
+        mobileNumber: '',
+        email: '',
+        dateOfBirth: ''
+      });
+      setSponsorInfo(null);
       
-      // Validate form
-      if (!formData.sponsorId || !formData.name || !formData.email || !formData.mobileNumber || !formData.dateOfBirth) {
-        throw new Error('Please fill all required fields');
+      // Optional: Redirect or show customer ID
+      if (data.customerId) {
+        setSuccess(`Registration successful! Your Customer ID is: ${data.customerId}`);
       }
-
-      setSuccess('Sponsor registration successful!');
-      // Fetch customer list after registration
-      if (formData.sponsorId) {
-        fetchCustomerList();
-      }
-    } catch (err) {
-      setError(err.message || 'Registration failed');
-    } finally {
-      setLoading(false);
+    } else {
+      setError(data.message || 'Registration failed. Please try again.');
     }
-  };
+  } catch (err) {
+    console.error('Registration error:', err);
+    setError('An error occurred. Please try again later.');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleLogout = () => {
     setSponsorToken(null);
@@ -137,7 +186,7 @@ const SponsorPage = () => {
               </h1>
               {sponsorInfo && (
                 <p className="text-sm text-gray-600 mt-1">
-                  Welcome, {sponsorInfo.name} ({sponsorInfo.id})
+                  Welcome, {sponsorInfo.username} ({sponsorInfo.sponsorId})
                 </p>
               )}
             </div>
@@ -187,7 +236,7 @@ const SponsorPage = () => {
                 {sponsorInfo && (
                   <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
                     <p className="text-sm text-blue-700">
-                      Current Sponsor: {sponsorInfo.name} (ID: {sponsorInfo.id})
+                      Current Sponsor: {sponsorInfo.username} (ID: {sponsorInfo.sponsorId})
                     </p>
                   </div>
                 )}
@@ -218,8 +267,8 @@ const SponsorPage = () => {
                       type="text"
                       id="sponsorId"
                       name="sponsorId"
-                      value={formData.sponsorId}
-                      onChange={handleInputChange}
+                      value={sponsorInfo?.sponsorId || ''}
+                      readOnly
                       className="pl-10 w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Enter sponsor ID"
                       required

@@ -108,3 +108,12 @@ exports.registerSponsor = async (req, res) => {
     });
   }
 };
+
+exports.sponsorList = async (req, res) => {
+  try {
+    const sponsors = await Sponsor.find({});
+    res.json({ sponsors });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching sponsors', error: error.message });
+  }
+}

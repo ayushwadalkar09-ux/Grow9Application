@@ -27,7 +27,7 @@ const AdminPage = () => {
   // Check if admin is logged in (simulate login check)
   useEffect(() => {
     // In real app, check token/session
-    const adminToken = localStorage.getItem('adminToken');
+    const adminToken = sessionStorage.getItem('adminToken');
     setIsLoggedIn(!!adminToken);
   }, []);
 
@@ -80,7 +80,7 @@ const AdminPage = () => {
     try {
       const response = await fetch(baseURL+'/api/admin/sponserlist', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+          'Authorization': `Bearer ${sessionStorage.getItem('adminToken')}`
         }
       });
 
@@ -104,7 +104,7 @@ const AdminPage = () => {
     try {
       const response = await fetch(baseURL+ `/api/sponser/customerlist?sponsorId=${sponsorId}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+          'Authorization': `Bearer ${sessionStorage.getItem('adminToken')}`
         }
       });
 
@@ -248,8 +248,8 @@ const AdminPage = () => {
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
+                  required
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
-                  placeholder="Enter Sponsor password"
                   // disabled={isLoading}
                 />
               </div>
