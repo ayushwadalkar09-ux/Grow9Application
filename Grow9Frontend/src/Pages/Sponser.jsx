@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Phone, Mail, Calendar, UserCheck, Users } from 'lucide-react';
 
+const baseURL = "http://localhost:5000";
 const SponsorPage = () => {
   const [sponsorToken, setSponsorToken] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -22,7 +23,7 @@ const SponsorPage = () => {
   useEffect(() => {
     // Check for sponsor token in cache/memory
     const token = sessionStorage?.getItem?.('sponsorToken') || 'demo-sponsor-token';
-    const loginStatus = sessionStorage?.getItem?.('sponsorLoggedIn') || 'true'; // Demo value
+    // const loginStatus = sessionStorage?.getItem?.('sponsorLoggedIn') || 'false'; // Demo value
     let sponsorData = sessionStorage?.getItem?.('sponsorInfo') || JSON.stringify({
       sponsorId: 'SP001',
       username: 'John Sponsor',
@@ -31,7 +32,7 @@ const SponsorPage = () => {
     sponsorData = JSON.parse(sponsorData);
     sponsorData = JSON.parse(sponsorData.sponsorInfo);
 
-    if (token && loginStatus === 'true') {
+    if (token) {
       setSponsorToken(token);
       setIsLoggedIn(true);
       setSponsorInfo(sponsorData);
@@ -40,22 +41,23 @@ const SponsorPage = () => {
 
   // Fetch customer list when sponsor token is available and user is logged in
   useEffect(() => {
-    if (sponsorToken && isLoggedIn && formData.sponsorId) {
+    if (sponsorToken && isLoggedIn && activeTab==='customers' && sponsorInfo?.sponsorId) {
       fetchCustomerList();
     }
-  }, [sponsorToken, isLoggedIn, formData.sponsorId]);
+  }, [sponsorToken, isLoggedIn ,sponsorInfo]);
 
   const fetchCustomerList = async () => {
-    if (!formData.sponsorId) return;
+    if (!sponsorInfo.sponsorId) return;
     
     setLoading(true);
     try {
+      console.log("ENter");
       // Simulate API call to /api/admin/sponserlist/sponserID
-      const response = await fetch(`/api/admin/sponserlist/${formData.sponsorId}`, {
+      const response = await fetch(baseURL +`/api/sponser/customerlist/${sponsorInfo.sponsorId}`, {
+        method: 'GET',
         headers: {
           'Authorization': `Bearer ${sponsorToken}`,
           'Content-Type': 'application/json',
-          'X-Sponsor-ID': sponsorInfo?.id || ''
         }
       });
       
@@ -84,8 +86,11 @@ const SponsorPage = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    console.log(name);
+    console.log(value);
     setFormData(prev => ({
       ...prev,
+      sponsorId: sponsorInfo.sponsorId,
       [name]: value
     }));
     setError('');
@@ -121,7 +126,7 @@ const SponsorPage = () => {
   setSuccess('');
   
   try {
-    const response = await fetch(`${baseURL}/api/customer/register`, {
+    const response = await fetch(baseURL+`/api/sponser/customerRegister`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -215,7 +220,10 @@ const SponsorPage = () => {
               Registration
             </button>
             <button
-              onClick={() => setActiveTab('customers')}
+              onClick={() => {
+                setActiveTab('customers');
+                fetchCustomerList();
+              }}
               className={`py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === 'customers'
                   ? 'border-blue-500 text-blue-600'
@@ -270,8 +278,6 @@ const SponsorPage = () => {
                       value={sponsorInfo?.sponsorId || ''}
                       readOnly
                       className="pl-10 w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Enter sponsor ID"
-                      required
                     />
                   </div>
                 </div>
@@ -378,12 +384,12 @@ const SponsorPage = () => {
                 Customer List
               </h2>
               <p className="text-sm text-gray-500 mt-1">
-                Customers added by Sponsor: {sponsorInfo?.name || 'Unknown'} (ID: {formData.sponsorId || sponsorInfo?.id || 'Please enter Sponsor ID'})
+                Customers added by Sponsor: {sponsorInfo?.username || 'Unknown'} (ID: {sponsorInfo.sponsorId|| 'Please enter Sponsor ID'})
               </p>
             </div>
 
             <div className="px-6 py-6">
-              {!formData.sponsorId && !sponsorInfo?.id ? (
+              {!sponsorInfo?.sponsorId  ? (
                 <div className="text-center py-8">
                   <Users className="mx-auto h-16 w-16 text-gray-400 mb-4" />
                   <p className="text-gray-500">Please enter your Sponsor ID in the registration form to view customers</p>
@@ -413,13 +419,16 @@ const SponsorPage = () => {
                           Phone
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          DOB
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Join Date
                         </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {customerList.map((customer) => (
-                        <tr key={customer.id} className="hover:bg-gray-50">
+                        <tr className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
                               <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
@@ -435,6 +444,9 @@ const SponsorPage = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">{customer.phone}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{customer.dateOfBirth}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">{customer.joinDate}</div>

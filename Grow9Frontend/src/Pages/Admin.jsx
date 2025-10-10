@@ -102,7 +102,8 @@ const AdminPage = () => {
   const fetchSponsorCustomers = async (sponsorId) => {
     setLoading(true);
     try {
-      const response = await fetch(baseURL+ `/api/sponser/customerlist?sponsorId=${sponsorId}`, {
+      const response = await fetch(baseURL+ `/api/sponser/customerlist/${sponsorId}`, {
+        method: 'GET',
         headers: {
           'Authorization': `Bearer ${sessionStorage.getItem('adminToken')}`
         }

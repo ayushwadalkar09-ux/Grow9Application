@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { loginSponsor } = require('../controllers/sponsorController');
+const { loginSponsor, customerRegistration ,customerList } = require('../controllers/sponsorController');
 const { authenticateToken } = require('../middleware/authMiddleware');
 
 router.post('/login', loginSponsor);
+router.post('/customerRegister', customerRegistration);
+router.get('/customerlist/:sponsorId', customerList);
 
 router.get('/dashboard', authenticateToken, (req, res) => {
   if (req.user.type !== 'sponsor')
