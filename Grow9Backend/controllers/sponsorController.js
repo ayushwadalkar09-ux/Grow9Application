@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const Sponsor = require('../models/SponsorRegisterationModel');
 const Customer = require('../models/customerModel');
+const SponsorDailyEarning = require('../models/SponsorDailyEarningModel');
 const { generateToken } = require('../config/jwt');
 
 exports.loginSponsor = async (req, res) => {
@@ -16,7 +17,6 @@ exports.loginSponsor = async (req, res) => {
 
     // Find sponsor in MongoDB
     const sponsor = await Sponsor.findOne({ sponsorId});
-    console.log("Sponser"+sponsor)
     if (!sponsor) {
       return res.status(401).json({ message: 'Invalid sponsor credentials' });
     }
@@ -176,6 +176,7 @@ exports.customerList = async (req, res) => {
       email: customer.email,
       phone: customer.mobileNumber,
       dateOfBirth:customer.dateOfBirth,
+      AmountInvested:customer.AmountInvested,
       joinDate: customer.registeredAt.toISOString().split('T')[0]
     }));
 
@@ -198,6 +199,40 @@ exports.customerList = async (req, res) => {
   }
 }
 
+exports.updateCustomerAmount = async (req, res) => {
+  try {
+    const { amount, sponsorId , email , mobileNumber } = req.body;
+
+    // ✅ Validate input
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ message: 'Invalid amount value' });
+    }
+    if (!sponsorId) {
+      return res.status(400).json({ message: 'Sponsor ID is required' });
+    }
+
+
+    const updatedCustomer = await Customer.findOneAndUpdate(
+      { sponsorId, email, mobileNumber },
+      { $set: { AmountInvested: amount } },
+      { new: true }
+    );
+
+    if (!updatedCustomer) {
+      return res.status(404).json({ message: 'Customer not found for this sponsor' });
+    }
+
+    return res.status(200).json({
+      message: 'Amount updated successfully',
+      customer: updatedCustomer,
+    });
+
+  } catch (error) {
+    console.error('Error updating amount:', error);
+    res.status(500).json({ message: 'Server error while updating amount' });
+  }
+};
+
 
 
 const validateEmail = (email) => {
@@ -209,4 +244,66 @@ const validateMobileNumber = (mobileNumber) => {
   const mobileRegex = /^[6-9]\d{9}$/;
   const cleanMobile = mobileNumber.replace(/[^\d]/g, '');
   return mobileRegex.test(cleanMobile);
+};
+
+
+exports.earningStats = async (req, res) => {
+  const { sponsorId , interval } = req.params;
+
+  try {
+    // 1️⃣ Find earnings document for the sponsor
+    const record = await SponsorDailyEarning.findOne({ SponsorID: sponsorId });
+
+    if (!record) {
+      return res.status(404).json({ message: "No earnings found for this sponsor" });
+    }
+
+    // 2️⃣ Filter based on time range
+    const now = new Date();
+    let daysToShow = interval === '7days' ? 7 : interval === '30days' ? 30 : 90;
+    const startDate = new Date();
+    startDate.setDate(now.getDate() - daysToShow);
+
+    const filteredRecords = record.records.filter(r => new Date(r.date) >= startDate);
+
+     // 4️⃣ Map records to same format as mock data
+    const formattedData = filteredRecords.map(r => ({
+      date: new Date(r.date).toISOString().split('T')[0],
+      earnings: r.earnings,
+      displayDate: r.displayDate || new Date(r.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    }));
+
+   
+
+    //Total Invested Amount 
+    const result = await Customer.aggregate([
+      { $match: { sponsorId: sponsorId } },          
+      { $group: { _id: null, totalInvested: { $sum: "$AmountInvested" } } }
+     ]);
+
+    const totalInvested = result[0]?.totalInvested || 0;
+     // 5️⃣ Compute stats
+    const stats = calculateStats(formattedData,totalInvested);
+
+    // 4️⃣ Respond with structured data
+    return res.status(200).json({
+      dailyEarnings: formattedData,
+      stats,
+      totalinvestment:totalInvested,
+    });
+  } catch (err) {
+    console.error("Error fetching sponsor earnings:", err);
+    return res.status(500).json({ message: "Server error fetching earnings", error: err.message });
+  }
+};
+
+// 🔹 Helper function to calculate stats
+const calculateStats = (records,totalInvested) => {
+  const totalEarnings = records.reduce((sum, r) => sum + r.earnings, 0);
+
+  return {
+    totalEarnings,
+    totalinvestment : totalInvested,
+    daysCount: records.length,
+  };
 };

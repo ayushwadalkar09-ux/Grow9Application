@@ -45,7 +45,6 @@ exports.loginAdmin = async (req, res) => {
 
 exports.registerSponsor = async (req, res) => {
   try {
-    console.log("Enter 1")
     const { name, email, mobNumber, dob , password } = req.body;
 
     // Validation
@@ -85,8 +84,6 @@ exports.registerSponsor = async (req, res) => {
       },
       { new: true, upsert: true, setDefaultsOnInsert: true }
     );
-    console.log(newSponsor.sponsorId)
-    console.log(newSponsor.name)
     // Return response with the generated sponsorId
     res.status(201).json({
       message: 'Sponsor registered successfully',

@@ -25,6 +25,10 @@ const customerSchema = new mongoose.Schema({
     lowercase: true,
     index: true
   },
+  AmountInvested: {
+    type: Number,
+    default: 0
+  },
   dateOfBirth: {
     type: Date,
     required: true

@@ -5,6 +5,7 @@ const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 const seedAdmin = require('./middleware/seedAdmin');
 
+
 dotenv.config();
 
 const adminRoutes = require('./routes/adminRoutes');
@@ -17,6 +18,7 @@ app.use(express.json());
 connectDB().then(()=>{
   seedAdmin();
 });
+require("./CRONJob/dailyEarningsCron");
 
 // Routes
 app.use('/api/Admin', adminRoutes);

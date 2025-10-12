@@ -1,16 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { loginSponsor, customerRegistration ,customerList } = require('../controllers/sponsorController');
+const { loginSponsor, customerRegistration ,customerList , updateCustomerAmount , earningStats} = require('../controllers/sponsorController');
 const { authenticateToken } = require('../middleware/authMiddleware');
 
 router.post('/login', loginSponsor);
-router.post('/customerRegister', customerRegistration);
-router.get('/customerlist/:sponsorId', customerList);
-
-router.get('/dashboard', authenticateToken, (req, res) => {
-  if (req.user.type !== 'sponsor')
-    return res.status(403).json({ message: 'Sponsor access required' });
-  res.status(200).json({ message: 'Welcome to sponsor dashboard' });
-});
+router.post('/customerRegister', authenticateToken, customerRegistration);
+router.get('/customerlist/:sponsorId', authenticateToken, customerList);
+router.get('/earnings/:sponsorId/:interval', authenticateToken, earningStats);
+router.put('/updateCustomerAmount', authenticateToken, updateCustomerAmount);
 
 module.exports = router;
