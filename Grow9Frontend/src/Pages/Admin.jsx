@@ -90,6 +90,33 @@ const AdminPage = () => {
     }
   };
 
+  const handlePercentageUpdate = async () => {
+    if (!tempPercentage || tempPercentage <= 0) {
+      return;
+    }
+
+    try {
+      const response = await fetch(baseURL + `/api/admin/percentageUpdate`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${sessionStorage.getItem('adminToken')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          newPercentage : tempPercentage
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        setEarningsPercentage(data.Percentage);
+      }
+    } catch (err) {
+      console.error('Failed to update Percentage:', err);
+    }
+  };
+
   // Fetch sponsors list
   const fetchSponsors = async () => {
     setLoading(true);
@@ -143,20 +170,21 @@ const AdminPage = () => {
   const fetchEarningsData = async () => {    
     setLoading(true);
     try {
-      // const response = await fetch(baseURL + `/api/sponser/earnings/${sponsorInfo.sponsorId}/interval=${timeRange}`, {
-      //   method: 'GET',
-      //   headers: {
-      //     'Authorization': `Bearer ${sponsorToken}`,
-      //     'Content-Type': 'application/json',
-      //   }
-      // });
+      const response = await fetch(baseURL + `/api/admin/earnings/interval=${timeRange}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${sessionStorage.getItem('adminToken')}`,
+          'Content-Type': 'application/json',
+        }
+      });
       
-      if (false) {
+      if (response.ok) {
         const data = await response.json();
         console.log(data.dailyEarnings);
         console.log(data.stats);
         console.log(data.totalinvestment);
         setEarningsData(data.dailyEarnings || []);
+        setEarningsPercentage(data.DailyPercentageGrowth);
         setEarningsStats(data.stats || {});
       } else {
         const mockData = generateMockEarningsData(timeRange);
@@ -610,7 +638,7 @@ const AdminPage = () => {
                             onClick={() => {
                               setEarningsPercentage(tempPercentage);
                               setShowPercentageModal(false);
-                              // Call your API to save percentage here
+                              handlePercentageUpdate();
                             }}
                             className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors font-medium"
                           >

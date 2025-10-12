@@ -2,16 +2,34 @@ import cron from "node-cron";
 import dotenv from "dotenv";
 import Customer from "../models/customerModel.js";
 import SponsorDailyEarning from "../models/SponsorDailyEarningModel.js"; 
+import AdminDailyGrowthPercentage from '../models/dailyGrowthPercentageModel.js';
 
 dotenv.config();
 
-// Percentage increase for the day (you can set this dynamically)
-const todaysPercentageIncrease = 0.05; // 5% increase example
+
+
+let todaysPercentageIncrease = 0; 
+(async () => {
+  try {
+    let DailyPercentageGrowth = await AdminDailyGrowthPercentage.find();
+    if (!DailyPercentageGrowth.length) {
+      DailyPercentageGrowth = [{ Percentage: 0 }];
+    }
+
+    DailyPercentageGrowth = DailyPercentageGrowth[0].Percentage;
+
+    todaysPercentageIncrease = DailyPercentageGrowth/100;
+    console.log("Today's Growth Percentage:", todaysPercentageIncrease);
+
+  } catch (error) {
+    console.error("Error in dailyEarningsCron:", error);
+  }
+})();
 
 // ────────────────────────────────
 // CRON Job: Runs every 24 hours (00:00 midnight)
 // ────────────────────────────────
-cron.schedule("33 17 * * *", async () => {
+cron.schedule("17 23 * * *", async () => {
   console.log("🚀 Running daily sponsor earnings job at:", new Date().toISOString());
 
   try {

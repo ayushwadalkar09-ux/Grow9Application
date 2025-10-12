@@ -1,8 +1,10 @@
 const bcrypt = require('bcryptjs');
 const Admin = require('../models/adminModel'); // Import the Admin model
 const { generateToken } = require('../config/jwt');
-const verifyAdminToken = require('../middleware/authMiddleware');
 const Sponsor = require('../models/SponsorRegisterationModel');
+const SponsorDailyEarning = require('../models/SponsorDailyEarningModel');
+const AdminDailyGrowthPercentage = require('../models/dailyGrowthPercentageModel');
+const Customer = require('../models/customerModel');
 
 exports.loginAdmin = async (req, res) => {
   try {
@@ -114,3 +116,107 @@ exports.sponsorList = async (req, res) => {
     res.status(500).json({ message: 'Error fetching sponsors', error: error.message });
   }
 }
+
+
+exports.adminEarningStats = async (req, res) => {
+  const { interval } = req.params;
+
+  try {
+    // 1️⃣ Find earnings document for the sponsor
+    const record = await SponsorDailyEarning.find();
+    console.log(record);
+
+    if (!record) {
+      return res.status(404).json({ message: "No earnings found for this sponsor" });
+    }
+
+    // 2️⃣ Filter based on time range
+    const now = new Date();
+    let daysToShow = interval === '7days' ? 7 : interval === '30days' ? 30 : 90;
+    const startDate = new Date();
+    startDate.setDate(now.getDate() - daysToShow);
+
+    let filteredRecords;
+    for(const tempRecord of record){
+      filteredRecords = tempRecord.records.filter(r => new Date(r.date) >= startDate);
+    }
+
+     // 4️⃣ Map records to same format as mock data
+    const formattedData = filteredRecords.map(r => ({
+      date: new Date(r.date).toISOString().split('T')[0],
+      earnings: r.earnings,
+      displayDate: r.displayDate || new Date(r.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    }));
+
+   
+
+    //Total Invested Amount 
+    const result = await Customer.aggregate([         
+      { $group: { _id: null, totalInvested: { $sum: "$AmountInvested" } } }
+     ]);
+
+    const totalInvested = result[0]?.totalInvested || 0;
+     // 5️⃣ Compute stats
+    const stats = calculateStats(formattedData,totalInvested);
+
+    let DailyPercentageGrowth = await AdminDailyGrowthPercentage.find();
+
+
+    console.log(DailyPercentageGrowth);
+    DailyPercentageGrowth = DailyPercentageGrowth[0].Percentage;
+
+    // 4️⃣ Respond with structured data
+    return res.status(200).json({
+      dailyEarnings: formattedData,
+      stats,
+      totalinvestment:totalInvested,
+      DailyPercentageGrowth,
+    });
+  } catch (err) {
+    console.error("Error fetching sponsor earnings:", err);
+    return res.status(500).json({ message: "Server error fetching earnings", error: err.message });
+  }
+};
+
+// 🔹 Helper function to calculate stats
+const calculateStats = (records,totalInvested) => {
+  const totalEarnings = records.reduce((sum, r) => sum + r.earnings, 0);
+
+  return {
+    totalEarnings,
+    totalinvestment : totalInvested,
+    daysCount: records.length,
+  };
+};
+
+
+exports.updateDailyPercentage = async (req, res) => {
+  try {
+    const { newPercentage } = req.body;
+
+    // ✅ Validate input
+    if (!newPercentage || newPercentage <= 0) {
+      return res.status(400).json({ message: 'Invalid amount value' });
+    }
+
+
+     const updatedPercentage = await AdminDailyGrowthPercentage.findOneAndUpdate(
+      {},
+      { Percentage : newPercentage },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+
+    if (!updatedPercentage) {
+      return res.status(404).json({ message: 'Failed in updating Percentage' });
+    }
+
+    return res.status(200).json({
+      message: 'Percentage Update',
+      Percentage: newPercentage,
+    });
+
+  } catch (error) {
+    console.error('Error updating amount:', error);
+    res.status(500).json({ message: 'Server error while updating amount' });
+  }
+};
