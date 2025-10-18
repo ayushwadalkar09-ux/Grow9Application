@@ -1,14 +1,12 @@
-import cron from "node-cron";
-import dotenv from "dotenv";
-import Customer from "../models/customerModel.js";
-import SponsorDailyEarning from "../models/SponsorDailyEarningModel.js"; 
-import AdminDailyGrowthPercentage from '../models/dailyGrowthPercentageModel.js';
+const cron = require("node-cron");
+const dotenv = require("dotenv");
+const Customer = require("../models/customerModel");
+const SponsorDailyEarning = require("../models/SponsorDailyEarningModel");
+const AdminDailyGrowthPercentage = require("../models/dailyGrowthPercentageModel");
 
 dotenv.config();
 
-
-
-let todaysPercentageIncrease = 0; 
+let todaysPercentageIncrease = 0;
 (async () => {
   try {
     let DailyPercentageGrowth = await AdminDailyGrowthPercentage.find();
@@ -18,9 +16,8 @@ let todaysPercentageIncrease = 0;
 
     DailyPercentageGrowth = DailyPercentageGrowth[0].Percentage;
 
-    todaysPercentageIncrease = DailyPercentageGrowth/100;
+    todaysPercentageIncrease = DailyPercentageGrowth / 100;
     console.log("Today's Growth Percentage:", todaysPercentageIncrease);
-
   } catch (error) {
     console.error("Error in dailyEarningsCron:", error);
   }
@@ -29,8 +26,11 @@ let todaysPercentageIncrease = 0;
 // ────────────────────────────────
 // CRON Job: Runs every 24 hours (00:00 midnight)
 // ────────────────────────────────
-cron.schedule("17 23 * * *", async () => {
-  console.log("🚀 Running daily sponsor earnings job at:", new Date().toISOString());
+cron.schedule("08 16 * * *", async () => {
+  console.log(
+    "🚀 Running daily sponsor earnings job at:",
+    new Date().toISOString()
+  );
 
   try {
     const sponsorTotals = await Customer.aggregate([
@@ -69,18 +69,23 @@ cron.schedule("17 23 * * *", async () => {
     //Update Customer Principal Amount
     const totalCustomerList = await Customer.find();
     console.log(totalCustomerList);
-    for (const customer of totalCustomerList){
+    for (const customer of totalCustomerList) {
       const updatedCustomer = await Customer.findOneAndUpdate(
-        { 
-          sponsorId: customer.sponsorId, 
-          email: customer.email, 
-          mobileNumber: customer.mobileNumber 
+        {
+          sponsorId: customer.sponsorId,
+          email: customer.email,
+          mobileNumber: customer.mobileNumber,
         },
-        { $set: { AmountInvested: (customer.AmountInvested + (todaysPercentageIncrease * customer.AmountInvested)) } },
+        {
+          $set: {
+            AmountInvested:
+              customer.AmountInvested +
+              todaysPercentageIncrease * customer.AmountInvested,
+          },
+        },
         { new: true }
       );
     }
-
 
     console.log("✅ Daily sponsor earnings updated successfully.");
   } catch (err) {

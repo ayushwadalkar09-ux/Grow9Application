@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 
+const baseURL = "http://localhost:5000";
 const faqData = [
   {
     question: "What services do you offer?",
@@ -26,9 +27,35 @@ const faqData = [
 
 export default function Faq() {
   const [expandedFaq, setExpandedFaq] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [query, setQuery] = useState("");
 
   const toggleFaq = (index) => {
     setExpandedFaq(expandedFaq === index ? null : index);
+  };
+
+  const handleSubmit = async () => {
+    if (!query.trim()) {
+      alert("Please enter your query before submitting.");
+      return;
+    }
+    try {
+      const res = await fetch(baseURL + "/api/Admin/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query }),
+      });
+      if (res.ok) {
+        alert("Thank you! Your query has been sent to the support team.");
+        setQuery("");
+        setShowModal(false);
+      } else {
+        alert("Something went wrong. Please try again later.");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Failed to send your query. Please try again.");
+    }
   };
 
   return (
@@ -78,11 +105,59 @@ export default function Faq() {
           <p className="text-gray-600 mb-4">
             Still have questions? We're here to help!
           </p>
-          <button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors">
+          <button
+            onClick={() => setShowModal(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors"
+          >
             Contact Support
           </button>
         </div>
       </div>
+
+      {/* Support Modal */}
+      {showModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white rounded-2xl shadow-lg w-full max-w-md p-6 relative">
+            {/* Close Button */}
+            <button
+              onClick={() => setShowModal(false)}
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-800"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <h3 className="text-2xl font-bold text-gray-900 mb-4 text-center">
+              Contact Support
+            </h3>
+            <p className="text-gray-600 mb-4 text-center">
+              Please describe your issue or question below. Our team will get
+              back to you shortly.
+            </p>
+
+            <textarea
+              className="w-full border border-gray-300 rounded-lg p-3 h-32 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              placeholder="Write your query here..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+
+            <div className="mt-6 flex justify-end space-x-3">
+              <button
+                onClick={() => setShowModal(false)}
+                className="px-5 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
