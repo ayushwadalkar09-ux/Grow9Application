@@ -15,12 +15,14 @@
     "axios": "^1.11.0",
     "bootstrap": "^5.3.8",
     "lucide-react": "^0.544.0",
+    "nodemailer": "^7.0.9",
     "postcss": "^8.4.38",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.8.2",
     "recharts": "^3.2.1",
-    "tailwindcss": "^3.4.3"
+    "tailwindcss": "^3.4.3",
+    "three": "^0.180.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
